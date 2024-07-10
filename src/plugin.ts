@@ -160,17 +160,50 @@ export class TsconfigPathsPlugin implements ResolvePluginInstance {
         ? path.resolve(options.baseUrl)
         : loadResult.absoluteBaseUrl;
 
-        let p = loadResult.paths;
+      if (!Object.keys(loadResult.paths).length) {
+        let tsconfig = `${this.absoluteBaseUrl}/tsconfig.json`,
+          dir = this.absoluteBaseUrl,
+          tsc = require(tsconfig),
+          paths = tsc?.compilerOptions?.paths;
 
-        for (let key in p) {
-          let paths = p[key];
+        while (tsc?.extends && paths === undefined) {
+          let p;
 
-          for (let i = 0, n = paths.length; i < n; i++) {
-            if (paths[i].indexOf('${configDir}') !== -1) {
-              paths[i] = paths[i].replace('${configDir}', this.absoluteBaseUrl);
+          if (tsc.extends.indexOf('${configDir}') !== -1) {
+            p = path.resolve(path.dirname(tsconfig), tsc.extends.split('${configDir}').pop());
+          }
+          else if (tsc.extends.startsWith('.')) {
+            p = path.resolve(dir, tsc.extends);
+          }
+          else {
+            p = path.resolve(dir, 'node_modules', tsc.extends);
+
+            if (!fs.existsSync(p)) {
+              p = path.resolve(path.dirname(path.resolve(tsconfig)), 'node_modules', tsc.extends);
             }
           }
+
+          dir = path.dirname(p);
+          tsc = require(p);
+          paths = tsc?.compilerOptions?.paths;
         }
+
+        if (paths !== undefined) {
+          loadResult.paths = paths;
+        }
+      }
+
+      let p = loadResult.paths;
+
+      for (let key in p) {
+        let paths = p[key];
+
+        for (let i = 0, n = paths.length; i < n; i++) {
+          if (paths[i].indexOf('${configDir}') !== -1) {
+            paths[i] = paths[i].replace('${configDir}', this.absoluteBaseUrl);
+          }
+        }
+      }
 
       this.matchPath = TsconfigPaths.createMatchPathAsync(
         this.absoluteBaseUrl,
@@ -211,8 +244,8 @@ export class TsconfigPathsPlugin implements ResolvePluginInstance {
     if (!("fileSystem" in resolver)) {
       this.log.logWarning(
         "tsconfig-paths-webpack-plugin: No file system found on resolver." +
-          " Please make sure you've placed the plugin in the correct part of the configuration." +
-          " This plugin is a resolver plugin and should be placed in the resolve part of the Webpack configuration."
+        " Please make sure you've placed the plugin in the correct part of the configuration." +
+        " This plugin is a resolver plugin and should be placed in the resolve part of the Webpack configuration."
       );
       return;
     }
