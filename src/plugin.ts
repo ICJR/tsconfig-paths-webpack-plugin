@@ -150,6 +150,11 @@ export class TsconfigPathsPlugin implements ResolvePluginInstance {
 
     const loadResult = loadConfig(loadFrom, this.log);
     if (loadResult.resultType === "success") {
+      if (!options.baseUrl && loadResult.baseUrl && loadResult.baseUrl.indexOf('${configDir}') !== -1) {
+        loadResult.baseUrl = path.relative(path.dirname(loadFrom), loadResult.baseUrl.split('${configDir}').pop() || '') || './';
+        loadResult.absoluteBaseUrl = path.resolve(loadResult.baseUrl);
+      }
+
       this.baseUrl = options.baseUrl || loadResult.baseUrl;
       this.absoluteBaseUrl = options.baseUrl
         ? path.resolve(options.baseUrl)
