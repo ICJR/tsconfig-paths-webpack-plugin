@@ -154,6 +154,19 @@ export class TsconfigPathsPlugin implements ResolvePluginInstance {
       this.absoluteBaseUrl = options.baseUrl
         ? path.resolve(options.baseUrl)
         : loadResult.absoluteBaseUrl;
+
+        let p = loadResult.paths;
+
+        for (let key in p) {
+          let paths = p[key];
+
+          for (let i = 0, n = paths.length; i < n; i++) {
+            if (paths[i].indexOf('${configDir}') !== -1) {
+              paths[i] = paths[i].replace('${configDir}', this.absoluteBaseUrl);
+            }
+          }
+        }
+
       this.matchPath = TsconfigPaths.createMatchPathAsync(
         this.absoluteBaseUrl,
         loadResult.paths,
