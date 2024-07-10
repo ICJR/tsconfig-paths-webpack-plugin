@@ -23,7 +23,10 @@
     "webpack-cli": "^4.5.0"
   },
   "scripts": {
-    "build": "rimraf lib && tsc -p ."
+    "build": "rimraf lib && tsc -p .",
+    "-": "-",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build"
   },
   "engines": {
     "node": ">=10.13.0"
